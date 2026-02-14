@@ -4,8 +4,8 @@ import requests
 # 初始化 FastAPI
 app = FastAPI(
     title="OrderLens API",
-    description="Fetch Injective orderbook and compute market health metrics",
-    version="0.2"
+    description="Fetch Injective orderbook, compute market health metrics, and rank markets",
+    version="0.3"
 )
 
 # Injective API 基础 URL
@@ -95,8 +95,6 @@ def root():
 def market_orderbook(market_id: str):
     """
     返回指定市场的原始 orderbook
-    示例:
-    /market/orderbook?market_id=0x0611780ba6960e0b...
     """
     orderbook = get_orderbook(market_id)
     return orderbook
@@ -123,3 +121,36 @@ def market_health(market_id: str):
     orderbook = get_orderbook(market_id)
     metrics = compute_microstructure_score(orderbook)
     return metrics
+
+
+# -----------------------------
+# 排名接口（Top Healthy Markets）
+# -----------------------------
+
+@app.get("/market/top-healthy")
+def top_healthy_markets(limit: int = 5):
+    """
+    返回健康评分最高的前 N 个市场
+    """
+    markets = get_markets()
+    ranked_markets = []
+
+    # 避免请求过多，只取前20个市场计算
+    for m in markets[:20]:
+        market_id = m["marketId"]
+        try:
+            orderbook = get_orderbook(market_id)
+            metrics = compute_microstructure_score(orderbook)
+            ranked_markets.append({
+                "market": m["ticker"],
+                "health_score": metrics["health_score"],
+                "rating": metrics["rating"]
+            })
+        except Exception as e:
+            print(f"Error fetching {m['ticker']}: {e}")
+            continue
+
+    # 排序
+    ranked_markets.sort(key=lambda x: x["health_score"], reverse=True)
+
+    return ranked_markets[:limit]
