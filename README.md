@@ -83,8 +83,8 @@ GET /market/health
 
 Parameters:
 
-Parameter    Type    Required
-market_id    string    yes
+Parameter	Type	Required
+market_id	string	yes
 
 Example:
 
@@ -103,8 +103,8 @@ GET /market/top-healthy
 
 Parameters:
 
-Parameter    Type    Required
-limit    int    no
+Parameter	Type	Required
+limit	int	no
 
 Example:
 
@@ -116,8 +116,8 @@ GET /market/signal
 
 Parameters:
 
-Parameter    Type    Required
-market_id    string    yes
+Parameter	Type	Required
+market_id	string	yes
 
 Example:
 
