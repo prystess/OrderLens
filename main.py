@@ -4,8 +4,8 @@ import requests
 # 初始化 FastAPI
 app = FastAPI(
     title="OrderLens API",
-    description="Fetch Injective orderbook, compute market health metrics, and rank markets",
-    version="0.3"
+    description="Fetch Injective orderbook, compute market health metrics, rank markets, and provide simple trade signals",
+    version="0.4"
 )
 
 # Injective API 基础 URL
@@ -33,7 +33,7 @@ def get_markets():
     return r.json()["markets"]
 
 # -----------------------------
-# 派生指标函数
+# 派生指标函数（重命名）
 # -----------------------------
 
 def compute_microstructure_score(orderbook):
@@ -154,3 +154,34 @@ def top_healthy_markets(limit: int = 5):
     ranked_markets.sort(key=lambda x: x["health_score"], reverse=True)
 
     return ranked_markets[:limit]
+
+
+# -----------------------------
+# 新增接口：简单交易信号
+# -----------------------------
+
+@app.get("/market/signal")
+def market_signal(market_id: str):
+    """
+    返回简单交易信号：BUY / SELL / NEUTRAL
+    逻辑基于 spread 和 orderbook imbalance
+    """
+    orderbook = get_orderbook(market_id)
+    metrics = compute_microstructure_score(orderbook)
+
+    signal = "NEUTRAL"
+
+    # 简单逻辑：
+    # 健康高且买盘深度大 → BUY
+    # 健康低且卖盘深度大 → SELL
+    if metrics["health_score"] > 80 and metrics["imbalance"] > 1.1:
+        signal = "BUY"
+    elif metrics["health_score"] < 60 and metrics["imbalance"] < 0.9:
+        signal = "SELL"
+
+    return {
+        "market": market_id,
+        "health_score": metrics["health_score"],
+        "rating": metrics["rating"],
+        "signal": signal
+    }
